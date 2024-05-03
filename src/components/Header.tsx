@@ -1,11 +1,16 @@
 "use client"
-import { signIn, useSession } from 'next-auth/react'
+import { signIn, useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
-import React from 'react'
+import { useState } from 'react';
+import Modal from 'react-modal';
+import { IoIosAddCircleOutline, IoMdLogOut } from "react-icons/io";
+import { HiCamera } from 'react-icons/hi';
+import { AiOutlineAim, AiOutlineClose } from 'react-icons/ai';
 export default function Header() {
     const { data: session } = useSession()
-   const defaultImg="https://www.shutterstock.com/image-vector/blank-avatar-photo-place-holder-600nw-1095249842.jpg"
+    const defaultImg = "https://www.shutterstock.com/image-vector/blank-avatar-photo-place-holder-600nw-1095249842.jpg"
+    const [isOpen, setIsOpen] = useState(false)
 
     return (
         <div className=' shadow-sm border-b sticky top-0 bg-white z-30 p-3'>
@@ -33,16 +38,33 @@ export default function Header() {
 
 
                 {session ? (
-                    <div className='flex '>
+                    <div className='flex items-center '>
 
-                        <img className='bg-contain h-12 w-12 rounded-full  ' src={session?.user?.image?session.user.image:defaultImg} alt="" /> 
-                        <button className='ml-5 p-1'>Log Out</button>
+
+                        <IoIosAddCircleOutline className='text-3xl cursor-pointer hover:scale-125 transition duration-300  ' onClick={() => setIsOpen(true)} />
+                        <img className='bg-contain h-12 w-12 rounded-full  ' src={session?.user?.image ? session.user.image : defaultImg} alt="" />
+                        <button onClick={() => signOut()} className='ml-5 scale-150'><IoMdLogOut /></button>
+
                     </div>
-                    
+
                 ) : (
 
                     <button onClick={() => signIn()} className=' text-sm font-bold text-blue-600'>Log In</button>
                 )}
+
+                {isOpen && (
+                    <Modal isOpen={isOpen} ariaHideApp={false} onRequestClose={()=>setIsOpen(false)} className=' flex flex-col items-center  max-lg-[90%] p-6 absolute top-56 left-[50%] translate-x-[-50%] bg-white border-2 rounded-md shadow-md'>
+                        <HiCamera className='text-4xl text-gray-400 cursor-pointer' />
+                        <input type="text" maxLength={150} placeholder='Please enter your caption ...' className='m-4 border-none text-center w-full focus:ring-0 outline-none ' />
+                        <button disabled className='w-full bg-red-500 text-white p-2 shadow-md  rounded-lg hover:brightness-105 disabled:bg-gray-200 disabled:cursor-not-allowed disabled:hover:brightness-100'> Upload Post</button>
+                        <AiOutlineClose className=' cursor-pointer absolute top-2 right-2 hover:text-red-600 transition duration-300' onClick={()=>setIsOpen(false)}/>
+
+                        
+
+                    </Modal>
+                )}
+
+
 
 
 
