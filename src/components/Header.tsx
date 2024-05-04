@@ -2,15 +2,67 @@
 import { signIn, useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Modal from 'react-modal';
 import { IoIosAddCircleOutline, IoMdLogOut } from "react-icons/io";
 import { HiCamera } from 'react-icons/hi';
 import { AiOutlineAim, AiOutlineClose } from 'react-icons/ai';
+import { File } from 'buffer';
+import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
+import { app } from "../firebase"
+import { error } from 'console';
 export default function Header() {
     const { data: session } = useSession()
     const defaultImg = "https://www.shutterstock.com/image-vector/blank-avatar-photo-place-holder-600nw-1095249842.jpg"
     const [isOpen, setIsOpen] = useState(false)
+    const [selectedImage, setSelectedImage] = useState<string | undefined | null>(null)
+    const [selectedImageObj, setSelectedImageObj] = useState<globalThis.File | null>(null)
+    const [ImageLoadingUpload, setImageLoadingUpload] = useState(false)
+    function addImagePost(e: React.ChangeEvent<HTMLInputElement> | undefined) {
+        if (e !== undefined) {
+            const file = e.target.files?.[0]
+            if (file) {
+                setSelectedImage(URL.createObjectURL(file))
+                setSelectedImageObj(file)
+            }
+        }
+    }
+    async function addImageToStorage() {
+        if (selectedImageObj) {
+
+            setImageLoadingUpload(true)
+            const storage = getStorage(app)
+            const fileName = new Date().getTime() + "_" + selectedImageObj.name
+            const storageRef = ref(storage, fileName)
+            const uploadTask = uploadBytesResumable(storageRef, selectedImageObj)
+            uploadTask.on("state_changed", (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+                console.log(progress + "%");
+            }, (error) => {
+                console.log(error);
+
+                setSelectedImage(null)
+                setImageLoadingUpload(false)
+                setSelectedImage(null)
+
+            }, () => {
+                
+
+                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+
+
+                    setSelectedImage(downloadURL)
+                    setImageLoadingUpload(false)
+
+                })
+            }
+
+            )
+        }
+
+
+
+    }
 
     return (
         <div className=' shadow-sm border-b sticky top-0 bg-white z-30 p-3'>
@@ -53,13 +105,19 @@ export default function Header() {
                 )}
 
                 {isOpen && (
-                    <Modal isOpen={isOpen} ariaHideApp={false} onRequestClose={()=>setIsOpen(false)} className=' flex flex-col items-center  max-lg-[90%] p-6 absolute top-56 left-[50%] translate-x-[-50%] bg-white border-2 rounded-md shadow-md'>
-                        <HiCamera className='text-4xl text-gray-400 cursor-pointer' />
+                    <Modal isOpen={isOpen} ariaHideApp={false} onRequestClose={() => setIsOpen(false)} className=' flex flex-col items-center  max-lg-[90%] p-6 absolute top-56 left-[50%] translate-x-[-50%] bg-white border-2 rounded-md shadow-md'>
+                        {selectedImage ? <img onClick={() => setSelectedImage(null)} className={`max-h-[250px] w-full object-cover cursor-pointer${ImageLoadingUpload&&'animate-pulse'}`} src={selectedImage} alt="" /> : (
+                            <label>
+                                <HiCamera className='text-4xl text-gray-400 cursor-pointer' />
+                                <input type="file" className='hidden' accept='image/*' onChange={(e) => addImagePost(e)} />
+                            </label>
+                        )
+                        }
                         <input type="text" maxLength={150} placeholder='Please enter your caption ...' className='m-4 border-none text-center w-full focus:ring-0 outline-none ' />
-                        <button disabled className='w-full bg-red-500 text-white p-2 shadow-md  rounded-lg hover:brightness-105 disabled:bg-gray-200 disabled:cursor-not-allowed disabled:hover:brightness-100'> Upload Post</button>
-                        <AiOutlineClose className=' cursor-pointer absolute top-2 right-2 hover:text-red-600 transition duration-300' onClick={()=>setIsOpen(false)}/>
+                        <button onClick={() => addImageToStorage()} className='w-full bg-red-500 text-white p-2 shadow-md  rounded-lg hover:brightness-105 disabled:bg-gray-200 disabled:cursor-not-allowed disabled:hover:brightness-100'> Upload Post</button>
+                        <AiOutlineClose className=' cursor-pointer absolute top-2 right-2 hover:text-red-600 transition duration-300' onClick={() => setIsOpen(false)} />
 
-                        
+
 
                     </Modal>
                 )}
